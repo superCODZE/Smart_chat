@@ -1,9 +1,9 @@
 import Image from "next/image";
 
-export default function Home() {
+export default function About() {
   return (
     <main>
-      <h1>welcome to the Smart Chat</h1>
+      <h1>About the Smart Chat</h1>
     </main>
   );
 }
