@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Smart Chat",
   description: "web app to chat with IA ",
+  icons: {
+    icon: "/Union.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
