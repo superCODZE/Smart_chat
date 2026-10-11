@@ -145,7 +145,7 @@ export default function Home() {
 
 
         <a
-          href="/about"
+          href="/Talk"
           className="rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-bold text-white no-underline transition-all duration-200 hover:bg-violet-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-200 active:scale-95"
         >
           let's talk
