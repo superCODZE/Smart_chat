@@ -1,3 +1,5 @@
+"use client";
+
 import Lightfall from "@/components/lightfallComp";
 import Image from "next/image";
 
