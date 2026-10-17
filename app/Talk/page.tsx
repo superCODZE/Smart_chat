@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import LimitPage from "@/components/limit_page";
+import { useState , useEffect} from "react";
 
 
 type Message = {
@@ -10,9 +9,6 @@ type Message = {
 };
 
 export default function Chat() {
-  const [timesExceeded, setTimesExceeded] = useState(false);
-  const [showLimitPage, setShowLimitPage] = useState(false);
-  const [conversationCount, setConversationCount] = useState(0);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -24,17 +20,11 @@ export default function Chat() {
 
   const handleSubmit = async (e : React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!prompt.trim() || timesExceeded) return;
+    if (!prompt.trim()) return;
     const userMessage: Message = { text: prompt, sender: "user" };
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setPrompt("");
     setLoading(true);
-    const nextCount = conversationCount + 1;
-    setConversationCount(nextCount);
-    if (nextCount >= 5) {
-      setTimesExceeded(true);
-      setShowLimitPage(true);
-    }
 
     try {
       const response = await fetch("/api/chat", {
@@ -120,25 +110,20 @@ export default function Chat() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Message Smart Chat..."
-              disabled={loading || timesExceeded}
+              disabled={loading}
               className="min-w-0 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:text-zinc-600 disabled:cursor-not-allowed"
             />
             <button
               type="submit"
-              disabled={loading || timesExceeded || !prompt.trim()}
+              disabled={loading || !prompt.trim()}
               className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {timesExceeded ? "Limit reached" : "Send"}
+              Send
             </button>
           </form>
           <p className="mt-3 text-center text-xs text-zinc-600">
             Smart Chat can make mistakes. Check important information.
           </p>
-
-
-          {showLimitPage && (
-            <LimitPage onClose={() => setShowLimitPage(false)} />
-          )}
         </section>
       </div>
     </main>

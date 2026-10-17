@@ -168,9 +168,8 @@ export default function Home() {
             WebkitBackdropFilter: "blur(14px)",
           }}
         >
-          <strong style={{ color: "#c4b5fd" }}>Note:</strong> Without an
-          account, you can use the chat up to 5 times. Please sign up for
-          unlimited access.
+          <strong style={{ color: "#c4b5fd" }}>Note:</strong> You can use the
+          chat without an account.
         </p>
       </section>
     </main>
