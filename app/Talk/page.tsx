@@ -1,6 +1,7 @@
 "use client";
 
-import { useState , useEffect} from "react";
+import { useEffect, useState } from "react";
+import LimitPage from "@/components/limit_page";
 
 
 type Message = {
@@ -11,12 +12,51 @@ type Message = {
 export default function Chat() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLimitPage, setShowLimitPage] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
+  const [resetAt, setResetAt] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       text: "Hi! I’m Smart Chat. Ask me anything and I’ll help you turn your ideas into clear answers.",
       sender: "bot",
     },
   ]);
+
+  useEffect(() => {
+    let active = true;
+
+    const checkLimit = async () => {
+      try {
+        const response = await fetch("/api/chat");
+        const data = await response.json();
+
+        if (active && data.limited === true) {
+          setLimitReached(true);
+          setShowLimitPage(true);
+          setResetAt(typeof data.resetAt === "number" ? data.resetAt : null);
+        }
+      } catch (error) {
+        console.error("Error checking token limit:", error);
+      }
+    };
+
+    checkLimit();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!resetAt) return;
+
+    const timer = window.setTimeout(() => {
+      setLimitReached(false);
+      setResetAt(null);
+    }, Math.max(0, resetAt - Date.now()));
+
+    return () => window.clearTimeout(timer);
+  }, [resetAt]);
 
   const handleSubmit = async (e : React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,8 +76,25 @@ export default function Chat() {
       });
 
       const data = await response.json();
+      if (response.status === 429 && data.error === "limit_reached") {
+        setLimitReached(true);
+        setShowLimitPage(true);
+        setResetAt(typeof data.resetAt === "number" ? data.resetAt : null);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch response from the server.");
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            text:
+              typeof data.error === "string"
+                ? data.error
+                : "The chat service is temporarily unavailable. Please try again.",
+            sender: "bot",
+          },
+        ]);
+        return;
       }
 
       const botMessage: Message = { text: data.text, sender: "bot" };
@@ -75,6 +132,15 @@ export default function Chat() {
         </header>
 
         <section className="flex flex-1 flex-col px-4 py-6 sm:px-8 sm:py-8">
+          {limitReached && (
+            <p
+              role="status"
+              className="mb-3 text-center text-xs text-amber-300/80"
+            >
+              Please wait 2 hours before using the chat again.
+            </p>
+          )}
+
           <div className="flex min-h-[320px] flex-1 flex-col gap-4 overflow-y-auto rounded-2xl border border-violet-200/10 bg-[#050308]/70 p-4 sm:p-6">
             {messages.map((message, index) => (
               <div
@@ -110,12 +176,12 @@ export default function Chat() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Message Smart Chat..."
-              disabled={loading}
+              disabled={loading || limitReached}
               className="min-w-0 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:text-zinc-600 disabled:cursor-not-allowed"
             />
             <button
               type="submit"
-              disabled={loading || !prompt.trim()}
+              disabled={loading || limitReached || !prompt.trim()}
               className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Send
@@ -124,6 +190,10 @@ export default function Chat() {
           <p className="mt-3 text-center text-xs text-zinc-600">
             Smart Chat can make mistakes. Check important information.
           </p>
+
+          {showLimitPage && (
+            <LimitPage onClose={() => setShowLimitPage(false)} />
+          )}
         </section>
       </div>
     </main>

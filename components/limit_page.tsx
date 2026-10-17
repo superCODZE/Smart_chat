@@ -15,20 +15,20 @@ export default function LimitPage({ onClose }: LimitPageProps) {
           !
         </div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-violet-300/70">
-          Limite atteinte
+          Limit reached
         </p>
         <h1 id="limit-title" className="text-xl font-semibold tracking-tight">
-          Vous avez dépassé votre limite de conversations
+          You have used all your available tokens
         </h1>
         <p className="mt-3 text-sm leading-6 text-zinc-400">
-          Vous ne pouvez plus envoyer de messages pour le moment.
+          You will be able to use the chat again in 2 hours.
         </p>
         <button
           type="button"
           onClick={onClose}
           className="mt-5 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-violet-100"
         >
-          Compris
+          Got it
         </button>
       </section>
     </div>
