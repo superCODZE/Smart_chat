@@ -1,11 +1,27 @@
 "use client";
 
 import Lightfall from "@/components/lightfallComp";
+import { authClient } from "@/lib/auth-client";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 
 
 export default function Home() {
+  const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
+
+  useEffect(() => {
+    if (!isPending && session) {
+      router.replace("/Talk");
+    }
+  }, [isPending, router, session]);
+
+  if (isPending || session) {
+    return null;
+  }
+
   return (
     <main style={{ width: "100%", height: "100vh", position: "relative" }}>
       <Lightfall
@@ -72,13 +88,13 @@ export default function Home() {
         </a>
         <nav style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
           <a
-            href="/login"
+            href="/Sign_in"
             className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white no-underline transition-all duration-200 hover:bg-white/10 hover:text-violet-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-200 active:scale-95"
           >
             Log in
           </a>
           <a
-            href="/signup"
+            href="/Sign_up"
             className="rounded-xl border border-white/25 bg-white/15 px-4 py-2.5 text-sm font-bold text-white no-underline backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-white/55 hover:bg-white/25 hover:shadow-[0_8px_24px_rgba(124,58,237,0.3)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-200 active:translate-y-0 active:scale-95"
           >
             Sign up

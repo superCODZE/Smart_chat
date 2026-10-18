@@ -1,6 +1,7 @@
 import {GoogleGenerativeAI} from "@google/generative-ai";
 import {NextResponse} from "next/server";
 import {randomUUID} from "crypto";
+import {auth} from "@/lib/auth";
 
 const TOKEN_LIMIT = 3000;
 const RESET_AFTER_MS = 2 * 60 * 60 * 1000;
@@ -39,7 +40,19 @@ function getUsage(visitorId) {
   return usage;
 }
 
+async function getSession(request) {
+  return auth.api.getSession({
+    headers: request.headers,
+  });
+}
+
 export async function GET(request) {
+  const session = await getSession(request);
+
+  if (session) {
+    return NextResponse.json({limited: false, resetAt: null});
+  }
+
   const visitor = getVisitorId(request);
   const usage = getUsage(visitor.id);
   const limited = usage.used >= TOKEN_LIMIT;
@@ -55,6 +68,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const session = await getSession(request);
     const visitor = getVisitorId(request);
     const {prompt} = await request.json();
 
@@ -77,9 +91,9 @@ export async function POST(request) {
       );
     }
 
-    const usage = getUsage(visitor.id);
+    const usage = session ? null : getUsage(visitor.id);
 
-    if (usage.used >= TOKEN_LIMIT) {
+    if (usage && usage.used >= TOKEN_LIMIT) {
       return withCookie(
         NextResponse.json(
           {
@@ -110,17 +124,21 @@ export async function POST(request) {
     const consumed =
       metadataTokenCount ||
       Math.ceil((prompt.trim().length + text.length) / 4);
-    const nextUsage = {
-      used: usage.used + consumed,
-      resetAt: usage.resetAt,
-    };
+    const nextUsage = usage
+      ? {
+          used: usage.used + consumed,
+          resetAt: usage.resetAt,
+        }
+      : null;
 
-    store.set(visitor.id, nextUsage);
+    if (nextUsage) {
+      store.set(visitor.id, nextUsage);
+    }
 
     return withCookie(
       NextResponse.json({
         text,
-        remaining: Math.max(0, TOKEN_LIMIT - nextUsage.used),
+        remaining: nextUsage ? Math.max(0, TOKEN_LIMIT - nextUsage.used) : null,
       }),
       visitor
     );

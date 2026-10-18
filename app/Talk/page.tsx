@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import LimitPage from "@/components/limit_page";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 
 type Message = {
@@ -10,6 +12,8 @@ type Message = {
 };
 
 export default function Chat() {
+  const router = useRouter();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [showLimitPage, setShowLimitPage] = useState(false);
@@ -23,6 +27,8 @@ export default function Chat() {
   ]);
 
   useEffect(() => {
+    if (sessionPending || session) return;
+
     let active = true;
 
     const checkLimit = async () => {
@@ -45,7 +51,7 @@ export default function Chat() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [session, sessionPending]);
 
   useEffect(() => {
     if (!resetAt) return;
@@ -57,6 +63,17 @@ export default function Chat() {
 
     return () => window.clearTimeout(timer);
   }, [resetAt]);
+
+  const handleSignOut = async () => {
+    const { error } = await authClient.signOut();
+
+    if (error) {
+      console.error("Error signing out:", error);
+      return;
+    }
+
+    router.replace("/");
+  };
 
   const handleSubmit = async (e : React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -126,9 +143,20 @@ export default function Chat() {
               </p>
             </div>
           </div>
-          <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-zinc-400">
-            AI assistant
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-zinc-400">
+              AI assistant
+            </span>
+            {session && (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-white/30 hover:text-white"
+              >
+                Se déconnecter
+              </button>
+            )}
+          </div>
         </header>
 
         <section className="flex flex-1 flex-col px-4 py-6 sm:px-8 sm:py-8">
