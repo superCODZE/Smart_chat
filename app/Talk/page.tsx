@@ -13,9 +13,15 @@ type Message = {
 
 export default function Chat() {
   const router = useRouter();
+  // The session determines whether the user is signed in and whether
+  // account actions such as sign-out and deletion should be displayed.
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
+  // These states prevent repeated actions and display a clear error
+  // if account deletion fails.
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
   const [showLimitPage, setShowLimitPage] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [resetAt, setResetAt] = useState<number | null>(null);
@@ -27,12 +33,15 @@ export default function Chat() {
   ]);
 
   useEffect(() => {
+    // Signed-in users are not subject to the anonymous usage limit.
+    // Therefore, check the limit only when there is no active session.
     if (sessionPending || session) return;
 
     let active = true;
 
     const checkLimit = async () => {
       try {
+        // The API returns the limit status and reset timestamp.
         const response = await fetch("/api/chat");
         const data = await response.json();
 
@@ -54,6 +63,8 @@ export default function Chat() {
   }, [session, sessionPending]);
 
   useEffect(() => {
+    // Once the reset time is reached, the user can send messages again
+    // without reloading the page.
     if (!resetAt) return;
 
     const timer = window.setTimeout(() => {
@@ -65,6 +76,7 @@ export default function Chat() {
   }, [resetAt]);
 
   const handleSignOut = async () => {
+    // Better Auth invalidates the session on the server and removes its cookie.
     const { error } = await authClient.signOut();
 
     if (error) {
@@ -73,6 +85,44 @@ export default function Chat() {
     }
 
     router.replace("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    // The confirmation prevents accidental deletion because this operation
+    // permanently removes the user and their associated data.
+    if (
+      !window.confirm(
+        "Supprimer définitivement votre compte et toutes vos données ? Cette action est irréversible.",
+      )
+    ) {
+      return;
+    }
+
+    setDeletingAccount(true);
+    setAccountError(null);
+
+    try {
+      // This request calls the Better Auth route enabled in lib/auth.ts.
+      // The server identifies the user through their secure session.
+      const { error } = await authClient.deleteUser({});
+
+      if (error) {
+        console.error("Error deleting account:", error);
+        setAccountError(
+          error.message || "Impossible de supprimer le compte. Veuillez réessayer.",
+        );
+        return;
+      }
+
+      // Reload the main page so the session state is refreshed after the
+      // account and its authentication cookie have been deleted.
+      window.location.replace("/");
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      setAccountError("Impossible de supprimer le compte. Veuillez réessayer.");
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   const handleSubmit = async (e : React.FormEvent<HTMLFormElement>) => {
@@ -84,6 +134,8 @@ export default function Chat() {
     setLoading(true);
 
     try {
+      // The message is sent to the server API, which calls the Gemini model
+      // and returns either the response or the usage-limit status.
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -148,18 +200,36 @@ export default function Chat() {
               AI assistant
             </span>
             {session && (
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-white/30 hover:text-white"
-              >
-                Se déconnecter
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={deletingAccount}
+                  className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Se déconnecter
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount}
+                  className="rounded-xl border border-red-400/30 px-3 py-1.5 text-xs text-red-300 transition hover:border-red-300/60 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {/* The button shows progress during the request to prevent
+                      multiple deletion requests from being sent at once. */}
+                  {deletingAccount ? "Suppression..." : "Supprimer le compte"}
+                </button>
+              </>
             )}
           </div>
         </header>
 
         <section className="flex flex-1 flex-col px-4 py-6 sm:px-8 sm:py-8">
+          {accountError && (
+            <p role="alert" className="mb-3 text-center text-xs text-red-300">
+              {accountError}
+            </p>
+          )}
           {limitReached && (
             <p
               role="status"

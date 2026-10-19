@@ -6,6 +6,7 @@ import { authClient } from "@/lib/auth-client";
 
 export default function SignIn() {
   const router = useRouter();
+  // These controlled fields contain the credentials submitted to Better Auth.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,6 +17,7 @@ export default function SignIn() {
     setError("");
     setLoading(true);
 
+    // Better Auth validates the credentials and creates the session cookie.
     const { error } = await authClient.signIn.email({ email, password });
 
     setLoading(false);
@@ -23,6 +25,7 @@ export default function SignIn() {
       setError(error.message ?? "Email ou mot de passe incorrect.");
       return;
     }
+    // A successful sign-in takes the user to the chat page.
     router.push("/Talk");
   };
 

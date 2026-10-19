@@ -29,8 +29,10 @@ export interface LightfallProps {
 
 type RGB = [number, number, number];
 
+// The shader supports at most eight colors, so extra colors are ignored.
 const MAX_COLORS = 8;
 
+// Convert a CSS hex color into normalized RGB values expected by WebGL.
 const hexToRGB = (hex: string): RGB => {
   const c = hex.replace('#', '').padEnd(6, '0');
   const r = parseInt(c.slice(0, 2), 16) / 255;
@@ -40,6 +42,8 @@ const hexToRGB = (hex: string): RGB => {
 };
 
 const prepColors = (input?: string[]) => {
+  // Pad the palette to MAX_COLORS and calculate its average for the
+  // optional mouse glow color.
   const base = (input && input.length ? input : ['#A6C8FF', '#5227FF', '#FF9FFC']).slice(0, MAX_COLORS);
   const count = base.length;
   const arr: RGB[] = [];
@@ -229,6 +233,7 @@ const Lightfall: React.FC<LightfallProps> = ({
   lightMode = false,
   mixBlendMode
 }) => {
+  // Refs keep WebGL objects and animation state outside React re-renders.
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const programRef = useRef<Program | null>(null);
@@ -239,6 +244,8 @@ const Lightfall: React.FC<LightfallProps> = ({
   const lastTimeRef = useRef(0);
 
   useEffect(() => {
+    // Create the renderer, shader program, geometry, and animation loop
+    // when the component mounts or rendering options change.
     const container = containerRef.current;
     if (!container) return;
 
@@ -298,6 +305,7 @@ const Lightfall: React.FC<LightfallProps> = ({
     meshRef.current = mesh;
 
     const resize = () => {
+      // Match the WebGL drawing buffer to the visible container dimensions.
       const rect = container.getBoundingClientRect();
       renderer.setSize(rect.width, rect.height);
       uniforms.iResolution.value = [gl.drawingBufferWidth, gl.drawingBufferHeight, 1];
@@ -308,6 +316,7 @@ const Lightfall: React.FC<LightfallProps> = ({
     ro.observe(container);
 
     const onPointerMove = (e: PointerEvent) => {
+      // Convert browser pointer coordinates into the shader coordinate system.
       const rect = canvas.getBoundingClientRect();
       const scale = renderer.dpr || 1;
       const x = (e.clientX - rect.left) * scale;
@@ -322,6 +331,7 @@ const Lightfall: React.FC<LightfallProps> = ({
     }
 
     const loop = (t: number) => {
+      // Update time and mouse interpolation on every animation frame.
       rafRef.current = requestAnimationFrame(loop);
       uniforms.iTime.value = t * 0.001;
       if (mouseDampening > 0) {
@@ -349,6 +359,7 @@ const Lightfall: React.FC<LightfallProps> = ({
     rafRef.current = requestAnimationFrame(loop);
 
     return () => {
+      // Stop the loop, remove listeners, and release WebGL resources.
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (mouseInteraction) canvas.removeEventListener('pointermove', onPointerMove);
       ro.disconnect();

@@ -13,15 +13,19 @@ export default function Home() {
   const { data: session, isPending } = authClient.useSession();
 
   useEffect(() => {
+    // Signed-in users skip the public landing page and go straight to chat.
     if (!isPending && session) {
       router.replace("/Talk");
     }
   }, [isPending, router, session]);
 
   if (isPending || session) {
+    // Avoid rendering public content while the session status is unresolved
+    // or while the authenticated redirect is being performed.
     return null;
   }
 
+  // Public landing page with navigation and the animated background.
   return (
     <main style={{ width: "100%", height: "100vh", position: "relative" }}>
       <Lightfall

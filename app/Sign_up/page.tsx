@@ -6,6 +6,7 @@ import { authClient } from "@/lib/auth-client";
 
 export default function SignUp() {
   const router = useRouter();
+  // These controlled fields contain the values submitted for the new account.
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,6 +18,7 @@ export default function SignUp() {
     setError("");
     setLoading(true);
 
+    // Better Auth creates the user and starts a session after registration.
     const { error } = await authClient.signUp.email({ name, email, password });
 
     setLoading(false);
@@ -24,6 +26,7 @@ export default function SignUp() {
       setError(error.message ?? "Inscription impossible.");
       return;
     }
+    // Send the newly registered user directly to the chat page.
     router.push("/Talk");
   };
 
